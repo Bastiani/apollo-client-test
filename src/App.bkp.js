@@ -9,42 +9,58 @@ import "./App.css";
 
 const query = gql`
   {
-    products {
+    odds {
       id
-      description
       price
+      availability
+      matchId
+      marketId
+      outcomeId
+      outcome
+      outcomeLabel
     }
   }
 `;
 
 const subscription = gql`
-  subscription ProductAdded {
-    productAdded {
+  subscription OddPrice {
+    OddPrice {
       id
-      description
       price
     }
   }
 `;
 
-const ProductListView = ({ data, subscribeToMore }) => {
+const OddListView = ({ data, subscribeToMore }) => {
+  const [toggle, set] = useState(false);
   useEffect(() => subscribeToMore(), []);
-  console.log("====== ProductListView", data);
+  useEffect(() => set(!toggle), [data]);
+
+  const transitions = useTransition(toggle, null, {
+    from: { position: "absolute", opacity: 0 },
+    enter: { opacity: 1 },
+    leave: { opacity: 0 }
+  });
 
   return (
     data &&
-    data.products &&
-    data.products.map(product => (
-      <div key={`${product.id} - key`}>
+    data.odds &&
+    data.odds.map(odd => (
+      <div key={odd.id}>
         <p>
-          {product.description} - {product.price}
+          {odd.outcomeLabel} -
+          {transitions.map(({ item, props, key }) => (
+            <animated.div key={key} style={props}>
+              {odd.price}
+            </animated.div>
+          ))}
         </p>
       </div>
     ))
   );
 };
 
-const ProductList = ({ query }) => (
+const OddList = ({ query }) => (
   <Query query={query}>
     {({ loading, error, data, subscribeToMore }) => {
       if (loading) return <p>Loading...</p>;
@@ -54,20 +70,21 @@ const ProductList = ({ query }) => (
           document: subscription,
           updateQuery: (prev, { subscriptionData }) => {
             if (!subscriptionData.data) return prev;
-            console.log("=== prev.products", prev);
-            console.log(
-              "===== subscriptionData.data.productAdded",
-              subscriptionData.data.productAdded
-            );
-
-            const newProduct = subscriptionData.data.productAdded;
 
             return Object.assign({}, prev, {
-              products: [newProduct, ...prev.products]
+              odds: prev.odds.map(odd => {
+                const oddUpdate = subscriptionData.data.OddPrice.id === odd.id;
+                return {
+                  ...odd,
+                  price: oddUpdate
+                    ? subscriptionData.data.OddPrice.price
+                    : odd.price
+                };
+              })
             });
           }
         });
-      return <ProductListView data={data} subscribeToMore={more} />;
+      return <OddListView data={data} subscribeToMore={more} />;
     }}
   </Query>
 );
@@ -78,7 +95,7 @@ function App() {
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
         <p>
-          <ProductList query={query} />
+          <OddList query={query} />
         </p>
       </header>
     </div>

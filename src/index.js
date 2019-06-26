@@ -13,11 +13,11 @@ import App from "./App";
 import * as serviceWorker from "./serviceWorker";
 
 const httpLink = new createHttpLink({
-  uri: "http://localhost:4000/graphql"
+  uri: "http://localhost:3333/graphql"
 });
 
 const wsLink = new WebSocketLink({
-  uri: "ws://localhost:4000/graphql",
+  uri: "ws://localhost:3333/graphql",
   options: {
     reconnect: true
   }
